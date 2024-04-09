@@ -15,6 +15,7 @@ export interface Todo {
 export default function TabOneScreen() {
   const [videoLink, setVideoLink] = useState("");
   const [data, setData] = useState(null);
+  const [imageThumbnail, setImageThumbnail] = useState(null);
   const [videoDuration, setVideoDuration] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isError, setIsError] = useState(false);
@@ -49,17 +50,19 @@ export default function TabOneScreen() {
     }
   };
 
-  const parseDuration = (
-    durationString: string
-  ): { hours: number; minutes: number; seconds: number } | null => {
+  const parseDuration = (durationString: string): string => {
     const match = durationString.match(/^PT(\d+H)?(\d+M)?(\d+S)?$/);
     if (match) {
       const hours = parseInt(match[1] ? match[1].slice(0, -1) : "0", 10);
+      const hoursFormatted = hours !== 0 ? hours + ":" : "";
       const minutes = parseInt(match[2] ? match[2].slice(0, -1) : "0", 10);
+      const minutesFormatted = minutes !== 0 ? minutes + ":" : "";
       const seconds = parseInt(match[3] ? match[3].slice(0, -1) : "0", 10);
-      return { hours, minutes, seconds };
+      const secondsFormatted = seconds !== 0 ? seconds : "";
+      return hoursFormatted + minutesFormatted + secondsFormatted;
+    } else {
+      return "Duration format is wrong!";
     }
-    return null;
   };
 
   const fetchVideoDuration = async (videoURL: string) => {
@@ -84,10 +87,17 @@ export default function TabOneScreen() {
     }
   };
 
-  const fetchVideoData = () => {
+  const fetchVideoData = async () => {
     if (!videoLink) return;
-    Promise.all([fetchVideoDetails(videoLink), fetchVideoDuration(videoLink)]);
+    const data = await Promise.all([
+      fetchVideoDetails(videoLink),
+      fetchVideoDuration(videoLink),
+    ]);
+    console.log("data: ", data);
+    setImageThumbnail(data[0].snippet.thumbnails.high.url);
   };
+
+  // const totalVideoDuration =
 
   return (
     <View style={styles.container}>
@@ -118,31 +128,36 @@ export default function TabOneScreen() {
         </Text>
       )}
       {data && (
-        <View>
+        <View style={styles.videoContainer}>
           <Image
             source={{
-              uri: data.snippet.thumbnails.high.url,
+              uri: imageThumbnail || "https://via.placeholder.com/200",
             }}
+            style={styles.thumbnail}
           />
-          <Text
+          <View
             style={{
-              color: "#fff",
+              display: "flex",
+              flexDirection: "column",
+              gap: 5,
             }}
           >
-            {data.snippet.title}
-          </Text>
-          <Text
-            style={{
-              color: "#fff",
-            }}
-          >
-            {videoDuration !== null &&
-              parseDuration(videoDuration) !== null &&
-              parseDuration(videoDuration).hours}
-            {parseDuration(videoDuration).hours} hours,{" "}
-            {parseDuration(videoDuration).minutes} minutes,{" "}
-            {parseDuration(videoDuration).seconds} seconds
-          </Text>
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 16,
+              }}
+            >
+              {data.snippet.title}
+            </Text>
+            <Text
+              style={{
+                color: "#fff",
+              }}
+            >
+              {videoDuration === null ? "NULL" : parseDuration(videoDuration)}
+            </Text>
+          </View>
         </View>
       )}
     </View>
@@ -169,15 +184,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     color: "#fff",
   },
-  todoItem: {
+  videoContainer: {
+    display: "flex",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
+    gap: 10,
+    borderRadius: 20,
   },
-  todoText: {
-    fontSize: 16,
+  thumbnail: {
+    width: 75 * 1.5,
+    height: 50 * 1.5,
+    borderRadius: 20,
   },
 });
